@@ -1,0 +1,1 @@
+"""Thin HTTP adapter for the manufacturing control-center dashboard."""
