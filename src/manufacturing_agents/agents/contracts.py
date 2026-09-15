@@ -74,14 +74,29 @@ PRODUCTION_CONTRACT = AgentContract(
     success_measure="Accurate system-impact inputs and feasible recovery options.",
 )
 
+INVENTORY_CONTRACT = AgentContract(
+    name="Inventory Agent",
+    purpose="Maintain accurate inventory, material, and product-quality intelligence.",
+    trigger="Inventory change, material threshold, quality observation, weight anomaly, or Orchestrator request.",
+    inputs=("finished goods", "WIP", "raw materials", "reservations", "orders", "quality", "weights"),
+    tools=("get_inventory_status", "get_material_inventory", "get_finished_goods", "calculate_max_production", "check_supply_thresholds", "calculate_defect_rate", "calculate_weight_variance"),
+    outputs=("available inventory", "material constraint", "limiting material", "quality status", "inventory risks"),
+    recipients=("Orchestrator Agent", "Production Agent", "Equipment Agent"),
+    decisions_allowed=("calculate_inventory_availability", "identify_limiting_material", "classify_quality_risk"),
+    failure_behavior="Mark missing, invalid, or conflicting inventory data explicitly and never invent quantities.",
+    guardrails=("Uses one shared state", "Cannot schedule production", "Cannot purchase materials", "Cannot bypass safety or quality rules"),
+    human_escalation=("Critical shortage", "Contractual order risk", "High defect rate", "Conflicting counts", "Potential safety issue"),
+    success_measure="Accurate deterministic inventory constraints and timely, evidence-based escalation.",
+)
+
 ORCHESTRATOR_CONTRACT = AgentContract(
     name="Orchestrator Agent",
     purpose="Coordinate specialists and select the safest overall factory response.",
     trigger="Significant event, new information, or invalidated decision.",
-    inputs=("full shared state", "Equipment report", "Production report", "scorecard", "permissions"),
-    tools=("Equipment Agent as tool", "Production Agent as tool", "calculate_system_impact", "request_human_approval", "record_decision"),
+    inputs=("full shared state", "Equipment report", "Production report", "Inventory report", "scorecard", "permissions"),
+    tools=("Equipment Agent as tool", "Production Agent as tool", "Inventory Agent as tool", "calculate_system_impact", "request_human_approval", "record_decision"),
     outputs=("system recommendation", "alternatives", "tradeoffs", "approval packet", "decision record"),
-    recipients=("Human plant manager", "Equipment Agent", "Production Agent"),
+    recipients=("Human plant manager", "Equipment Agent", "Production Agent", "Inventory Agent"),
     decisions_allowed=("system-level coordination", "human approval request"),
     failure_behavior="Pause unsafe or under-specified actions, state what is missing, and escalate.",
     guardrails=("One shared state", "Safety is a hard constraint", "No hidden chain-of-thought", "No unauthorized action"),

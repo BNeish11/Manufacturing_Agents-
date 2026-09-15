@@ -29,7 +29,7 @@ function renderSignals(data) { $('#signals').innerHTML = [['API STATUS', 'CONNEC
 function render(data) {
   $('#factory-name').textContent = data.factory.name; $('#severity').textContent = data.factory.severity; $('#updated-at').textContent = new Date(data.updated_at).toLocaleTimeString(); $('#state-version').textContent = `VERSION ${data.version}`; $('#footer-version').textContent = `STATE VERSION ${data.version}`;
   renderLines(data); renderDecision(data); renderSnapshot(data); renderEvents(data); renderImpact(data); renderSignals(data);
-  const active = data.latest_result ? 'COMPLETED' : 'WAITING'; $('#orchestrator-state').textContent = active; $('#equipment-state').textContent = active; $('#production-state').textContent = active;
+  const active = data.latest_result ? 'COMPLETED' : 'WAITING'; $('#orchestrator-state').textContent = active; $('#equipment-state').textContent = active; $('#production-state').textContent = active; $('#inventory-state').textContent = active;
 }
 async function refresh() { try { const data = await api('/api/dashboard'); render(data); $('#api-status').textContent = 'API CONNECTED'; $('#api-status').className = 'status-chip green'; } catch (error) { $('#api-status').textContent = 'API UNAVAILABLE'; $('#api-status').className = 'status-chip red'; } }
 async function command(path) { try { await api(path, { method: 'POST' }); await refresh(); } catch (error) { $('#api-status').textContent = 'COMMAND FAILED'; $('#api-status').className = 'status-chip red'; } }

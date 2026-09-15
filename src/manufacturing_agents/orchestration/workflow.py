@@ -22,6 +22,7 @@ from manufacturing_agents.tools.equipment_tools import (
     get_machine_status,
     estimate_repair_time,
 )
+from manufacturing_agents.tools.inventory_tools import inventory_report_for_state
 from manufacturing_agents.tools.orchestrator_tools import (
     calculate_scorecard,
     calculate_system_impact,
@@ -58,6 +59,7 @@ def run_line_two_failure(
     delivery = calculate_delivery_impact(state, "A", projected_loss)
     overtime_hours = calculate_overtime_requirement(state, projected_loss, "line-1")
     alternative = simulate_schedule_change(state, "A", "line-1", projected_loss)
+    inventory_report = inventory_report_for_state(state)
 
     evidence = [
         f"Line 2 status is {machine.status.value} with {machine.downtime_minutes} minutes downtime.",
@@ -66,6 +68,7 @@ def run_line_two_failure(
         f"Finished goods inventory is {sum(inventory['finished_goods'].values())} units.",
         f"Line 1 utilization is {production['line-1']['utilization_percent']}%.",
         f"Line 2 specialized part available: {part['available']}.",
+        f"Inventory supports {inventory_report['supported_production']['C']['maximum_supported_quantity']} additional Product C units.",
     ]
     risks = [
         "Fault diagnosis is unknown and requires equipment investigation.",
@@ -122,6 +125,7 @@ def run_line_two_failure(
         "recommendation": recommendation,
         "evidence": evidence,
         "risks": risks,
+        "inventory_report": inventory_report,
         "impact": impact,
         "scorecard": scorecard,
         "approval": approval,

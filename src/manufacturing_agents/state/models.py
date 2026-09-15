@@ -64,6 +64,7 @@ class Product:
     name: str
     business_priority: str
     margin_per_unit: float
+    dimensions: str = "UNKNOWN"
 
 
 @dataclass
@@ -85,6 +86,67 @@ class Inventory:
     raw_material_units: int
     days_of_inventory: float
     data_quality: DataQuality = DataQuality.SIMULATED
+    produced_quantity: dict[str, int] = field(default_factory=dict)
+    accepted_quantity: dict[str, int] = field(default_factory=dict)
+    defective_quantity: dict[str, int] = field(default_factory=dict)
+    reserved_quantity: dict[str, int] = field(default_factory=dict)
+    quality_hold_quantity: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class RawMaterial:
+    material_id: str
+    name: str
+    unit: str
+    quantity_on_hand: float
+    reorder_threshold: float
+    critical_threshold: float
+    requirements_per_product: dict[str, float]
+    quantity_reserved: float = 0.0
+    data_quality: DataQuality = DataQuality.SIMULATED
+    source: str = "SIMULATED"
+
+
+@dataclass
+class QualityStandard:
+    product_id: str
+    expected_weight_kg: float
+    accepted_min_weight_kg: float
+    accepted_max_weight_kg: float
+    minor_deviation_percent: float = 10.0
+    critical_defect_rate_percent: float = 5.0
+
+
+@dataclass
+class WeightObservation:
+    observation_id: str
+    product_id: str
+    observed_weight_kg: float
+    source: str
+    timestamp: str
+    data_quality: DataQuality = DataQuality.SIMULATED
+
+
+@dataclass
+class HumanInspectionObservation:
+    observation_id: str
+    product_id: str
+    category: str
+    severity: str
+    quantity: int
+    timestamp: str
+    source: str = "HUMAN_PROVIDED"
+
+
+@dataclass
+class InventoryRisk:
+    risk_id: str
+    subject: str
+    risk_type: str
+    severity: str
+    evidence: list[str] = field(default_factory=list)
+    affected_orders: list[str] = field(default_factory=list)
+    escalation_required: bool = False
 
 
 @dataclass
@@ -178,6 +240,11 @@ class FactoryState:
     scorecard: list[ScorecardMetric]
     decisions: list[DecisionRecord] = field(default_factory=list)
     assumptions: dict[str, DataQuality] = field(default_factory=dict)
+    raw_materials: dict[str, RawMaterial] = field(default_factory=dict)
+    quality_standards: dict[str, QualityStandard] = field(default_factory=dict)
+    weight_observations: list[WeightObservation] = field(default_factory=list)
+    human_inspections: list[HumanInspectionObservation] = field(default_factory=list)
+    inventory_risks: list[InventoryRisk] = field(default_factory=list)
     version: int = 0
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 

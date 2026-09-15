@@ -7,12 +7,14 @@ from agents.model_settings import Reasoning
 
 from manufacturing_agents.state.factory_state import StateOfWorld
 from manufacturing_agents.agents.equipment import build_equipment_agent
+from manufacturing_agents.agents.inventory import build_inventory_agent
 from manufacturing_agents.agents.production import build_production_agent
 
 
 def build_orchestrator_agent(state: StateOfWorld) -> Agent:
     equipment_agent = build_equipment_agent(state)
     production_agent = build_production_agent(state)
+    inventory_agent = build_inventory_agent(state)
 
     @function_tool
     def factory_snapshot() -> dict[str, object]:
@@ -40,7 +42,7 @@ def build_orchestrator_agent(state: StateOfWorld) -> Agent:
         model_settings=ModelSettings(reasoning=Reasoning(effort="high")),
         instructions=(
             "You are the Orchestrator Agent and system-level decision owner. Use the "
-            "shared state and call the Equipment Agent and Production Agent as specialist "
+            "shared state and call the Equipment Agent, Production Agent, and Inventory Agent as specialist "
             "tools. Compare their evidence, identify conflicts, evaluate production, cost, "
             "quality, safety, labor, inventory, shipping, and customer consequences, then "
             "produce a concise recommendation with alternatives, evidence, expected impact, "
@@ -53,5 +55,11 @@ def build_orchestrator_agent(state: StateOfWorld) -> Agent:
         # Specialists are intentionally exposed as tools, not handoffs.
         tool_use_behavior="run_llm_again",
     ).clone(
-        tools=[factory_snapshot, system_impact, equipment_agent.as_tool("consult_equipment_agent", "Request equipment analysis."), production_agent.as_tool("consult_production_agent", "Request production analysis.")]
+        tools=[
+            factory_snapshot,
+            system_impact,
+            equipment_agent.as_tool("consult_equipment_agent", "Request equipment analysis."),
+            production_agent.as_tool("consult_production_agent", "Request production analysis."),
+            inventory_agent.as_tool("consult_inventory_agent", "Request inventory and quality analysis."),
+        ]
     )

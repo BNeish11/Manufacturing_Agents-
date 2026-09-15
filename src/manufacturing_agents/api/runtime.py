@@ -53,6 +53,11 @@ class DashboardRuntime:
                 "reassigned": state.reassigned_employee_count,
             },
             "materials": to_jsonable(state.materials),
+            "raw_materials": to_jsonable(state.raw_materials),
+            "quality_standards": to_jsonable(state.quality_standards),
+            "weight_observations": to_jsonable(state.weight_observations),
+            "human_inspections": to_jsonable(state.human_inspections),
+            "inventory_risks": to_jsonable(state.inventory_risks),
             "quality": to_jsonable(state.quality_findings),
             "scorecard": to_jsonable(state.scorecard),
             "assumptions": to_jsonable(state.assumptions),
@@ -65,6 +70,7 @@ class DashboardRuntime:
         self.events.add("workflow_started", "ORCHESTRATOR", self.state.version, "Line 2 failure assessment started.")
         self.events.add("agent_activity", "EQUIPMENT AGENT", self.state.version, "Equipment analysis requested.", status="ANALYZING")
         self.events.add("agent_activity", "PRODUCTION AGENT", self.state.version, "Production impact analysis requested.", status="ANALYZING")
+        self.events.add("agent_activity", "Inventory Agent", self.state.version, "Inventory and quality analysis requested.", status="ANALYZING")
         self.latest_result = run_line_two_failure(self.state, human_approved=human_approved)
         self.events.add("approval_requested", "ORCHESTRATOR", self.state.version, "Human approval required for system-level recovery action.")
         self.events.add("workflow_completed", "ORCHESTRATOR", self.state.version, "Line 2 assessment completed.")

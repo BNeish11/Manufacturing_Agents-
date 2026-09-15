@@ -14,6 +14,8 @@ from manufacturing_agents.state.models import (
     Product,
     ProductionLine,
     QualityFinding,
+    QualityStandard,
+    RawMaterial,
     SafetyState,
     ScorecardMetric,
 )
@@ -58,9 +60,9 @@ def create_initial_state() -> FactoryState:
             "line-3": ProductionLine("line-3", "Production Line 3", LineStatus.RUNNING, 81.0, 180, ["B", "C"]),
         },
         products={
-            "A": Product("A", "Product A", "HIGH_VOLUME", 18.0),
-            "B": Product("B", "Product B", "HIGHEST_MARGIN", 42.0),
-            "C": Product("C", "Product C", "CONTRACTUAL_DELIVERY", 24.0),
+            "A": Product("A", "Product A", "HIGH_VOLUME", 18.0, "12x12"),
+            "B": Product("B", "Product B", "HIGHEST_MARGIN", 42.0, "24x24"),
+            "C": Product("C", "Product C", "CONTRACTUAL_DELIVERY", 24.0, "36x36"),
         },
         orders={
             "order-a": Order("order-a", "A", "Northwind Retail", 5000, "2026-09-18", "HIGH"),
@@ -72,6 +74,11 @@ def create_initial_state() -> FactoryState:
             work_in_progress={"A": 300, "B": 150, "C": 150},
             raw_material_units=10000,
             days_of_inventory=3.5,
+            produced_quantity={"A": 1200, "B": 600, "C": 350},
+            accepted_quantity={"A": 1180, "B": 590, "C": 342},
+            defective_quantity={"A": 20, "B": 10, "C": 8},
+            reserved_quantity={"A": 700, "B": 200, "C": 60},
+            quality_hold_quantity={"A": 0, "B": 0, "C": 0},
         ),
         employees={
             f"employee-{index}": Employee(
@@ -93,6 +100,29 @@ def create_initial_state() -> FactoryState:
             )
         },
         quality_findings={},
+        raw_materials={
+            "liner-board": RawMaterial(
+                "liner-board", "Corrugated liner board", "m2", 5000.0, 1250.0, 500.0,
+                {"A": 0.60, "B": 1.80, "C": 3.60},
+            ),
+            "corrugated-medium": RawMaterial(
+                "corrugated-medium", "Corrugated medium", "m2", 2500.0, 625.0, 250.0,
+                {"A": 0.30, "B": 0.90, "C": 1.80},
+            ),
+            "adhesive": RawMaterial(
+                "adhesive", "Box adhesive", "kg", 120.0, 30.0, 12.0,
+                {"A": 0.020, "B": 0.035, "C": 0.060},
+            ),
+            "printing-ink": RawMaterial(
+                "printing-ink", "Printing ink", "L", 30.0, 7.5, 3.0,
+                {"A": 0.004, "B": 0.007, "C": 0.012},
+            ),
+        },
+        quality_standards={
+            "A": QualityStandard("A", 0.40, 0.37, 0.43),
+            "B": QualityStandard("B", 0.95, 0.89, 1.01),
+            "C": QualityStandard("C", 1.80, 1.69, 1.91),
+        },
         costs=CostState(),
         safety=SafetyState(human_intervention_required=True),
         scorecard=[

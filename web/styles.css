@@ -785,6 +785,11 @@ h2 {
   color: var(--cyan);
 }
 
+.agent-icon.inventory {
+  border-color: var(--green);
+  color: var(--green);
+}
+
 .state-icon {
   border-color: var(--green);
   color: var(--green);
@@ -849,7 +854,7 @@ h2 {
 
   display: grid;
 
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
 
   gap: 50px;
 
