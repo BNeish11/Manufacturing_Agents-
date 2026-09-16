@@ -23,15 +23,40 @@ function renderSnapshot(data) {
   const cards = [['EQUIPMENT', `${line2.status} · ${equipment.downtime_minutes} MIN DOWNTIME`], ['PRODUCTION', `${equipment.lost_units} LOST · ${equipment.projected_lost_units} PROJECTED`], ['INVENTORY', `${data.inventory.days_of_inventory} DAYS · ${data.inventory.raw_material_units} RAW UNITS`], ['LABOR', `${data.labor.affected} AFFECTED · ${data.labor.reassigned} REASSIGNED`], ['ORDERS', Object.values(data.orders).map((order) => `P${order.product_id} ${order.priority}`).join(' / ')], ['RISK', `SEVERITY ${data.factory.severity} · ${data.factory.safety.status}`]];
   $('#snapshot-grid').innerHTML = cards.map(([title, value]) => `<div class="snapshot-card"><strong>${title}</strong><p>${esc(value)}</p></div>`).join('');
 }
+function renderInventoryReport(data) {
+  const report = data.latest_result?.inventory_report;
+  if (!report) {
+    $('#inventory-report-state').textContent = 'NOT RUN';
+    $('#inventory-report-state').className = 'status-chip neutral';
+    $('#inventory-report').innerHTML = '<p class="muted">Run the Line 2 assessment to view material constraints, available goods, and quality findings.</p>';
+    return;
+  }
+  const productC = report.finished_goods?.C || {};
+  const productCLimit = report.supported_production?.C || {};
+  const productCQuality = report.quality?.C || {};
+  const limitingMaterial = productCLimit.limiting_material || 'UNKNOWN';
+  $('#inventory-report-state').textContent = 'ANALYSIS COMPLETE';
+  $('#inventory-report-state').className = 'status-chip green';
+  $('#inventory-report').innerHTML = `<div class="inventory-metrics"><div class="inventory-metric"><span>PRODUCT C AVAILABLE</span><strong>${esc(productC.available)} units</strong><small>${esc(productC.reserved)} reserved · ${esc(productC.quality_hold)} quality hold</small></div><div class="inventory-metric"><span>MATERIAL-SUPPORTED C</span><strong>${esc(productCLimit.maximum_supported_quantity)} units</strong><small>Limiting material: ${esc(limitingMaterial)}</small></div><div class="inventory-metric"><span>PRODUCT C QUALITY</span><strong>${esc(productCQuality.defect_rate_percent)}% defects</strong><small class="${productCQuality.status === 'WARNING' ? 'warning-text' : ''}">${esc(productCQuality.status)}</small></div></div><div class="inventory-materials">${Object.values(report.materials || {}).map((material) => `<div class="material-row"><span>${esc(material.name)}</span><strong>${esc(material.available_quantity)} ${esc(material.unit)}</strong><em class="${String(material.status).toLowerCase()}">${esc(material.status)}</em></div>`).join('')}</div>`;
+}
 function renderEvents(data) { $('#event-feed').innerHTML = data.events?.length ? data.events.map((event) => `<div class="event"><time>${new Date(event.timestamp).toLocaleTimeString()}</time><div><strong>${esc(event.actor)} · ${esc(event.event_type)}</strong><p>${esc(event.summary)}</p></div></div>`).join('') : '<p class="muted">No events recorded.</p>'; }
 function renderImpact(data) { const labels = ['EQUIPMENT FAILURE', 'CAPACITY REDUCTION', 'PRODUCTION LOSS', 'INVENTORY CHANGE', 'ORDER RISK', 'CUSTOMER IMPACT', 'REVENUE RISK']; $('#impact-chain').innerHTML = labels.map((label, index) => `<div class="impact-step ${index === 0 ? 'active' : index > 0 && index < 5 ? 'warning' : ''}">${label}</div>`).join(''); }
 function renderSignals(data) { $('#signals').innerHTML = [['API STATUS', 'CONNECTED'], ['SHARED STATE', `VERSION ${data.version}`], ['SAFETY', data.factory.safety.status], ['EVENT JOURNAL', `${data.events?.length || 0} EVENTS`], ['SCENARIO', data.latest_result ? 'ASSESSMENT COMPLETE' : 'READY']].map(([name, value]) => `<div class="signal-row"><span>${name}</span><strong>${esc(value)}</strong></div>`).join(''); }
 function render(data) {
   $('#factory-name').textContent = data.factory.name; $('#severity').textContent = data.factory.severity; $('#updated-at').textContent = new Date(data.updated_at).toLocaleTimeString(); $('#state-version').textContent = `VERSION ${data.version}`; $('#footer-version').textContent = `STATE VERSION ${data.version}`;
-  renderLines(data); renderDecision(data); renderSnapshot(data); renderEvents(data); renderImpact(data); renderSignals(data);
-  const active = data.latest_result ? 'COMPLETED' : 'WAITING'; $('#orchestrator-state').textContent = active; $('#equipment-state').textContent = active; $('#production-state').textContent = active; $('#inventory-state').textContent = active;
+  renderLines(data); renderDecision(data); renderSnapshot(data); renderInventoryReport(data); renderEvents(data); renderImpact(data); renderSignals(data);
+  const agentStates = { orchestrator: 'WAITING', equipment: 'IDLE', production: 'IDLE', inventory: 'IDLE' };
+  for (const event of data.events || []) {
+    const actor = String(event.actor || '').toLowerCase();
+    const state = event.metadata?.status || (event.event_type === 'workflow_completed' ? 'COMPLETED' : null);
+    if (state && actor.includes('orchestrator')) agentStates.orchestrator = state;
+    if (state && actor.includes('equipment')) agentStates.equipment = state;
+    if (state && actor.includes('production')) agentStates.production = state;
+    if (state && actor.includes('inventory')) agentStates.inventory = state;
+  }
+  $('#orchestrator-state').textContent = agentStates.orchestrator; $('#equipment-state').textContent = agentStates.equipment; $('#production-state').textContent = agentStates.production; $('#inventory-state').textContent = agentStates.inventory;
 }
-async function refresh() { try { const data = await api('/api/dashboard'); render(data); $('#api-status').textContent = 'API CONNECTED'; $('#api-status').className = 'status-chip green'; } catch (error) { $('#api-status').textContent = 'API UNAVAILABLE'; $('#api-status').className = 'status-chip red'; } }
+async function refresh() { try { const data = await api('/api/dashboard'); render(data); $('#api-status').textContent = 'API CONNECTED'; $('#api-status').className = 'status-chip green'; } catch (error) { $('#api-status').textContent = 'API UNAVAILABLE'; $('#api-status').className = 'status-chip red'; $('#inventory-report-state').textContent = 'API UNAVAILABLE'; $('#inventory-report-state').className = 'status-chip red'; $('#inventory-report').innerHTML = '<p class="muted">The shared-state API is unavailable. Start the local server to view Inventory Agent findings.</p>'; } }
 async function command(path) { try { await api(path, { method: 'POST' }); await refresh(); } catch (error) { $('#api-status').textContent = 'COMMAND FAILED'; $('#api-status').className = 'status-chip red'; } }
 $('#start-btn').addEventListener('click', () => command('/api/scenario/line-2-failure')); $('#reset-btn').addEventListener('click', () => command('/api/scenario/reset')); document.querySelectorAll('[data-update]').forEach((button) => button.addEventListener('click', () => command(`/api/scenario/${button.dataset.update}`)));
 refresh(); setInterval(refresh, 3000);

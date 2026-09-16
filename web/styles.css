@@ -1159,6 +1159,76 @@ h2 {
   line-height: 1.7;
 }
 
+.inventory-report {
+  display: grid;
+  gap: 14px;
+}
+
+.inventory-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.inventory-metric {
+  padding: 13px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+
+.inventory-metric span,
+.inventory-metric small {
+  display: block;
+  color: var(--muted);
+  font: 9px "IBM Plex Mono";
+}
+
+.inventory-metric strong {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--green);
+  font: 22px "Barlow Condensed";
+}
+
+.inventory-metric small {
+  font-family: "Manrope", sans-serif;
+  font-size: 10px;
+}
+
+.warning-text,
+.material-row em.warning {
+  color: var(--amber) !important;
+}
+
+.inventory-materials {
+  display: grid;
+  gap: 6px;
+}
+
+.material-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-soft);
+}
+
+.material-row strong,
+.material-row em {
+  font: 9px "IBM Plex Mono";
+  font-style: normal;
+}
+
+.material-row em.normal {
+  color: var(--green);
+}
+
+.material-row em.critical {
+  color: var(--red);
+}
+
 /* --------------------------------------------------
    EVENT FEED
 -------------------------------------------------- */
@@ -1390,6 +1460,10 @@ footer {
   }
 
   .snapshot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-metrics {
     grid-template-columns: 1fr;
   }
 
