@@ -27,3 +27,25 @@ def test_scenario_update_changes_shared_state_and_clears_stale_result() -> None:
     assert runtime.state.version == previous_version + 1
     assert result["lines"]["line-3"]["status"] == "QUALITY_HOLD"
     assert result["latest_result"] is None
+
+
+def test_dashboard_includes_simulation_clock_and_matching_metrics_version() -> None:
+    runtime = DashboardRuntime()
+
+    dashboard = runtime.dashboard()
+    metrics = runtime.metrics()
+
+    assert dashboard["simulation"]["tick"] == 0
+    assert dashboard["metrics"]["state_version"] == dashboard["version"]
+    assert metrics["state_version"] == dashboard["version"]
+
+
+def test_advance_simulation_ticks_clock_and_logs_real_backend_events() -> None:
+    runtime = DashboardRuntime()
+    before = runtime.dashboard()
+
+    after = runtime.advance_simulation(3)
+
+    assert after["simulation"]["tick"] == before["simulation"]["tick"] + 3
+    assert after["metrics"]["state_version"] == after["version"]
+    assert any(event["event_type"] == "simulation_tick" for event in after["events"])

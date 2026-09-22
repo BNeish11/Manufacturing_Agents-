@@ -454,6 +454,20 @@ def _schema_sql() -> list[str]:
             FOREIGN KEY(factory_id) REFERENCES factories(id)
         );
         """,
+        """
+        CREATE TABLE IF NOT EXISTS simulation_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            factory_id INTEGER,
+            scenario_name TEXT,
+            seed INTEGER NOT NULL,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            tick_count INTEGER NOT NULL DEFAULT 0,
+            final_state_version INTEGER,
+            metrics_json TEXT,
+            FOREIGN KEY(factory_id) REFERENCES factories(id)
+        );
+        """,
     ]
 
 

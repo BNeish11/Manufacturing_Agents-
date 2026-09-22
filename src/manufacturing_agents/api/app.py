@@ -41,6 +41,19 @@ def events() -> list[dict[str, object]]:
     return runtime.events.as_dicts()
 
 
+@app.get("/api/metrics")
+def metrics() -> dict[str, object]:
+    return runtime.metrics()
+
+
+@app.post("/api/simulation/tick")
+def simulation_tick(ticks: int = 1) -> dict[str, object]:
+    try:
+        return runtime.advance_simulation(ticks)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
 @app.post("/api/scenario/reset")
 def reset() -> dict[str, object]:
     return runtime.reset()

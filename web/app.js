@@ -41,10 +41,22 @@ function renderInventoryReport(data) {
 }
 function renderEvents(data) { $('#event-feed').innerHTML = data.events?.length ? data.events.map((event) => `<div class="event"><time>${new Date(event.timestamp).toLocaleTimeString()}</time><div><strong>${esc(event.actor)} · ${esc(event.event_type)}</strong><p>${esc(event.summary)}</p></div></div>`).join('') : '<p class="muted">No events recorded.</p>'; }
 function renderImpact(data) { const labels = ['EQUIPMENT FAILURE', 'CAPACITY REDUCTION', 'PRODUCTION LOSS', 'INVENTORY CHANGE', 'ORDER RISK', 'CUSTOMER IMPACT', 'REVENUE RISK']; $('#impact-chain').innerHTML = labels.map((label, index) => `<div class="impact-step ${index === 0 ? 'active' : index > 0 && index < 5 ? 'warning' : ''}">${label}</div>`).join(''); }
-function renderSignals(data) { $('#signals').innerHTML = [['API STATUS', 'CONNECTED'], ['SHARED STATE', `VERSION ${data.version}`], ['SAFETY', data.factory.safety.status], ['EVENT JOURNAL', `${data.events?.length || 0} EVENTS`], ['SCENARIO', data.latest_result ? 'ASSESSMENT COMPLETE' : 'READY']].map(([name, value]) => `<div class="signal-row"><span>${name}</span><strong>${esc(value)}</strong></div>`).join(''); }
+function renderSignals(data) { $('#signals').innerHTML = [['API STATUS', 'CONNECTED'], ['SHARED STATE', `VERSION ${data.version}`], ['SIMULATION TICK', `${data.simulation?.tick ?? 0}`], ['SIMULATION TIME', data.simulation?.simulation_time ? new Date(data.simulation.simulation_time).toLocaleString() : '--'], ['SAFETY', data.factory.safety.status], ['EVENT JOURNAL', `${data.events?.length || 0} EVENTS`], ['SCENARIO', data.latest_result ? 'ASSESSMENT COMPLETE' : 'READY']].map(([name, value]) => `<div class="signal-row"><span>${name}</span><strong>${esc(value)}</strong></div>`).join(''); }
+function renderMetrics(data) {
+  const metrics = data.metrics || {};
+  const cards = [
+    ['DOWNTIME', `${metrics.downtime_minutes ?? 0} MIN`],
+    ['PRODUCTION LOSS', `${metrics.production_loss_units ?? 0} UNITS`],
+    ['DEFECTS LOGGED', `${metrics.defect_count_total ?? 0}`],
+    ['MATERIAL SHORTAGES', `${(metrics.material_shortages || []).length}`],
+    ['WEIGHT ANOMALIES', `${(metrics.weight_anomaly_products || []).length}`],
+    ['PENDING APPROVALS', `${metrics.pending_human_approvals ?? 0}`],
+  ];
+  $('#metrics-grid').innerHTML = cards.map(([title, value]) => `<div class="snapshot-card"><strong>${title}</strong><p>${esc(value)}</p></div>`).join('');
+}
 function render(data) {
   $('#factory-name').textContent = data.factory.name; $('#severity').textContent = data.factory.severity; $('#updated-at').textContent = new Date(data.updated_at).toLocaleTimeString(); $('#state-version').textContent = `VERSION ${data.version}`; $('#footer-version').textContent = `STATE VERSION ${data.version}`;
-  renderLines(data); renderDecision(data); renderSnapshot(data); renderInventoryReport(data); renderEvents(data); renderImpact(data); renderSignals(data);
+  renderLines(data); renderDecision(data); renderSnapshot(data); renderInventoryReport(data); renderEvents(data); renderImpact(data); renderSignals(data); renderMetrics(data);
   const agentStates = { orchestrator: 'WAITING', equipment: 'IDLE', production: 'IDLE', inventory: 'IDLE' };
   for (const event of data.events || []) {
     const actor = String(event.actor || '').toLowerCase();
@@ -58,5 +70,5 @@ function render(data) {
 }
 async function refresh() { try { const data = await api('/api/dashboard'); render(data); $('#api-status').textContent = 'API CONNECTED'; $('#api-status').className = 'status-chip green'; } catch (error) { $('#api-status').textContent = 'API UNAVAILABLE'; $('#api-status').className = 'status-chip red'; $('#inventory-report-state').textContent = 'API UNAVAILABLE'; $('#inventory-report-state').className = 'status-chip red'; $('#inventory-report').innerHTML = '<p class="muted">The shared-state API is unavailable. Start the local server to view Inventory Agent findings.</p>'; } }
 async function command(path) { try { await api(path, { method: 'POST' }); await refresh(); } catch (error) { $('#api-status').textContent = 'COMMAND FAILED'; $('#api-status').className = 'status-chip red'; } }
-$('#start-btn').addEventListener('click', () => command('/api/scenario/line-2-failure')); $('#reset-btn').addEventListener('click', () => command('/api/scenario/reset')); document.querySelectorAll('[data-update]').forEach((button) => button.addEventListener('click', () => command(`/api/scenario/${button.dataset.update}`)));
+$('#start-btn').addEventListener('click', () => command('/api/scenario/line-2-failure')); $('#reset-btn').addEventListener('click', () => command('/api/scenario/reset')); $('#advance-btn').addEventListener('click', () => command('/api/simulation/tick')); document.querySelectorAll('[data-update]').forEach((button) => button.addEventListener('click', () => command(`/api/scenario/${button.dataset.update}`)));
 refresh(); setInterval(refresh, 3000);
