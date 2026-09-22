@@ -8,6 +8,25 @@ const esc = (value) => String(value ?? '--').replace(/[&<>"']/g, (char) => ({ '&
 
 function lineClass(line) { return line.status === 'DOWN' ? 'down' : line.status === 'QUALITY_HOLD' ? 'hold' : 'running'; }
 function lineLabel(status) { return status === 'QUALITY_HOLD' ? 'QUALITY HOLD' : status; }
+function renderHero(data) {
+  const lines = Object.values(data.lines || {});
+  const down = lines.filter((line) => line.status === 'DOWN');
+  const degraded = lines.filter((line) => line.status === 'DEGRADED' || line.status === 'QUALITY_HOLD');
+  const safetyBlocked = data.factory.safety.status !== 'CLEAR';
+  let signal = 'green'; let headline = 'NORMAL OPERATIONS'; let subtitle = `Simulation tick ${data.simulation?.tick ?? 0} · all lines nominal`;
+  if (safetyBlocked || down.length) {
+    signal = 'red';
+    headline = 'ATTENTION REQUIRED';
+    subtitle = down.length ? `${down.map((line) => line.name).join(', ')} down` : `Safety status: ${data.factory.safety.status}`;
+  } else if (degraded.length) {
+    signal = 'amber';
+    headline = 'DEGRADED CONDITIONS';
+    subtitle = `${degraded.map((line) => line.name).join(', ')} affected`;
+  }
+  $('#hero-signal').className = `signal ${signal}`;
+  $('#factory-status').textContent = headline;
+  $('#hero-subtitle').textContent = subtitle;
+}
 function renderLines(data) {
   $('#line-grid').innerHTML = Object.values(data.lines).map((line) => `<article class="line-card ${lineClass(line)}"><div class="line-top"><strong>${esc(line.name.toUpperCase())}</strong><span class="status-chip ${lineClass(line) === 'down' ? 'red' : lineClass(line) === 'hold' ? 'amber' : 'green'}">● ${lineLabel(line.status)}</span></div><div class="line-status ${lineClass(line)}"><strong>${line.utilization_percent}% UTILIZATION</strong><span class="muted">${line.hourly_capacity} units / hour</span></div><div class="line-meta"><span>PRODUCTS ${esc(line.supported_products.join(' · '))}</span>${line.quality_hold ? '<span>QUALITY RESTRICTED</span>' : ''}</div></article>`).join('');
 }
@@ -28,7 +47,7 @@ function renderInventoryReport(data) {
   if (!report) {
     $('#inventory-report-state').textContent = 'NOT RUN';
     $('#inventory-report-state').className = 'status-chip neutral';
-    $('#inventory-report').innerHTML = '<p class="muted">Run the Line 2 assessment to view material constraints, available goods, and quality findings.</p>';
+    $('#inventory-report').innerHTML = '<p class="muted">Run a scenario or advance the simulation to view material constraints, available goods, and quality findings.</p>';
     return;
   }
   const productC = report.finished_goods?.C || {};
@@ -56,7 +75,7 @@ function renderMetrics(data) {
 }
 function render(data) {
   $('#factory-name').textContent = data.factory.name; $('#severity').textContent = data.factory.severity; $('#updated-at').textContent = new Date(data.updated_at).toLocaleTimeString(); $('#state-version').textContent = `VERSION ${data.version}`; $('#footer-version').textContent = `STATE VERSION ${data.version}`;
-  renderLines(data); renderDecision(data); renderSnapshot(data); renderInventoryReport(data); renderEvents(data); renderImpact(data); renderSignals(data); renderMetrics(data);
+  renderHero(data); renderLines(data); renderDecision(data); renderSnapshot(data); renderInventoryReport(data); renderEvents(data); renderImpact(data); renderSignals(data); renderMetrics(data);
   const agentStates = { orchestrator: 'WAITING', equipment: 'IDLE', production: 'IDLE', inventory: 'IDLE' };
   for (const event of data.events || []) {
     const actor = String(event.actor || '').toLowerCase();
