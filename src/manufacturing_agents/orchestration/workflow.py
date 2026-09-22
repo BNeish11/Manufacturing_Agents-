@@ -106,6 +106,7 @@ def run_line_two_failure(
         human_decision="APPROVED" if human_approved else None,
         final_action="Recovery plan approved for execution" if human_approved else None,
         outcome="Pending human approval" if not human_approved else "Approved action recorded",
+        required_permission="move_production",
     )
     message = AgentMessage(
         sender="Orchestrator Agent",

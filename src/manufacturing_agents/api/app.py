@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from manufacturing_agents.api.runtime import DashboardRuntime
+from manufacturing_agents.permissions.authority import AuthorizationError
 
 app = FastAPI(title="Manufacturing AI Control Center")
 app.add_middleware(
@@ -70,6 +73,20 @@ def scenario_update(name: str) -> dict[str, object]:
         return runtime.apply_update(name)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Unknown scenario update") from exc
+
+
+class DecisionRequest(BaseModel):
+    action: Literal["APPROVE", "REJECT", "HOLD"]
+
+
+@app.post("/api/decisions/{decision_id}/decision")
+def submit_decision(decision_id: str, body: DecisionRequest) -> dict[str, object]:
+    try:
+        return runtime.submit_decision(decision_id, body.action)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except AuthorizationError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
 @app.get("/")

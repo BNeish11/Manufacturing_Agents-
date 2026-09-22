@@ -29,6 +29,7 @@ class ApprovalStatus(str, Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    ON_HOLD = "ON_HOLD"
 
 
 @dataclass
@@ -245,6 +246,7 @@ class DecisionRecord:
     human_decision: str | None = None
     final_action: str | None = None
     outcome: str | None = None
+    required_permission: str | None = None
 
 
 @dataclass
