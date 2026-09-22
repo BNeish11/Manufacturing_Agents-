@@ -13,6 +13,7 @@ from manufacturing_agents.tools.equipment_tools import (
     get_maintenance_history,
     get_maintenance_procedure,
     estimate_repair_time,
+    investigate_equipment_fault,
 )
 
 
@@ -48,6 +49,11 @@ def build_equipment_agent(state: StateOfWorld) -> Agent:
         """Retrieve a concise maintenance procedure reference."""
         return get_maintenance_procedure(equipment_id)
 
+    @function_tool
+    def fault_investigation(equipment_id: str) -> dict[str, object]:
+        """Infer a candidate diagnosis and confidence from observable sensor symptoms only."""
+        return investigate_equipment_fault(state, equipment_id)
+
     return Agent(
         name="Equipment Agent",
         model="gpt-5.6-terra",
@@ -56,8 +62,10 @@ def build_equipment_agent(state: StateOfWorld) -> Agent:
             "You are the Equipment Agent. Analyze equipment and maintenance only. "
             "Use tools for evidence, identify unknown or conflicting data explicitly, "
             "and return a concise report with diagnosis, evidence, repair duration, "
-            "part options, risks, confidence, and escalation. Never make system-wide "
-            "production scheduling decisions or bypass safety."
+            "part options, risks, confidence, and escalation. Use fault_investigation "
+            "to infer a candidate diagnosis with confidence from observable symptoms; "
+            "never assert a diagnosis as certain when confidence is low. Never make "
+            "system-wide production scheduling decisions or bypass safety."
         ),
-        tools=[machine_status, fault_information, maintenance_history, replacement_part, repair_time, maintenance_procedure],
+        tools=[machine_status, fault_information, maintenance_history, replacement_part, repair_time, maintenance_procedure, fault_investigation],
     )

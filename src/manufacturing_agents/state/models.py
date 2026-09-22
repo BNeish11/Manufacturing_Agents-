@@ -21,6 +21,7 @@ class DataQuality(str, Enum):
     UNKNOWN = "UNKNOWN"
     CONFLICTING = "CONFLICTING"
     STALE = "STALE"
+    INFERRED = "INFERRED"
 
 
 class ApprovalStatus(str, Enum):
@@ -45,6 +46,10 @@ class Equipment:
     required_part_id: str | None = None
     data_quality: DataQuality = DataQuality.SIMULATED
     maintenance_history: list[str] = field(default_factory=list)
+    temperature: float | None = None
+    vibration: float | None = None
+    health_score: float | None = None
+    operating_hours: float = 0.0
 
 
 @dataclass
@@ -150,6 +155,28 @@ class InventoryRisk:
 
 
 @dataclass
+class DefectObservation:
+    defect_id: str
+    product_id: str
+    defect_code: str
+    description: str
+    severity: str
+    quantity: int
+    detected_at: str
+    line_id: str | None = None
+    source: str = "SIMULATED"
+
+
+@dataclass
+class StateConflict:
+    conflict_id: str
+    subject: str
+    description: str
+    sources: list[str] = field(default_factory=list)
+    severity: str = "WARNING"
+
+
+@dataclass
 class Employee:
     employee_id: str
     skill: str
@@ -245,6 +272,7 @@ class FactoryState:
     weight_observations: list[WeightObservation] = field(default_factory=list)
     human_inspections: list[HumanInspectionObservation] = field(default_factory=list)
     inventory_risks: list[InventoryRisk] = field(default_factory=list)
+    defects: list[DefectObservation] = field(default_factory=list)
     version: int = 0
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 

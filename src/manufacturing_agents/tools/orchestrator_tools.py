@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from manufacturing_agents.permissions.authority import authority_for
 from manufacturing_agents.state.factory_state import StateOfWorld
-from manufacturing_agents.state.models import ApprovalStatus, DecisionRecord
+from manufacturing_agents.state.models import ApprovalStatus, DecisionRecord, LineStatus
 
 
 def get_factory_state(state: StateOfWorld) -> dict[str, object]:
@@ -53,6 +53,34 @@ def calculate_scorecard(state: StateOfWorld) -> dict[str, object]:
         "total_weight_percent": total_weight,
         "metrics": [vars(metric) for metric in metrics],
     }
+
+
+def detect_state_conflicts(state: StateOfWorld) -> list[dict[str, object]]:
+    """Flag disagreements between equipment status and its production line status."""
+
+    def find(factory: object) -> list[dict[str, object]]:
+        conflicts: list[dict[str, object]] = []
+        for equipment in factory.equipment.values():  # type: ignore[attr-defined]
+            line = factory.production_lines.get(equipment.line_id)  # type: ignore[attr-defined]
+            if line is None:
+                continue
+            equipment_running = equipment.status is LineStatus.RUNNING
+            line_running = line.status is LineStatus.RUNNING
+            if equipment_running != line_running:
+                conflicts.append(
+                    {
+                        "subject": equipment.line_id,
+                        "description": (
+                            f"Equipment {equipment.equipment_id} reports {equipment.status.value} "
+                            f"while line {line.line_id} reports {line.status.value}."
+                        ),
+                        "sources": ["equipment status", "production line status"],
+                        "severity": "HIGH",
+                    }
+                )
+        return conflicts
+
+    return state.read(find)  # type: ignore[return-value]
 
 
 def request_human_approval(

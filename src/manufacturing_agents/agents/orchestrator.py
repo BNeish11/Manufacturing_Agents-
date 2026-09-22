@@ -9,6 +9,7 @@ from manufacturing_agents.state.factory_state import StateOfWorld
 from manufacturing_agents.agents.equipment import build_equipment_agent
 from manufacturing_agents.agents.inventory import build_inventory_agent
 from manufacturing_agents.agents.production import build_production_agent
+from manufacturing_agents.tools.orchestrator_tools import detect_state_conflicts
 
 
 def build_orchestrator_agent(state: StateOfWorld) -> Agent:
@@ -36,6 +37,11 @@ def build_orchestrator_agent(state: StateOfWorld) -> Agent:
         """Record the metrics that a proposed system decision must consider."""
         return {"summary": summary, "affected_metrics": affected_metrics, "state_version": state.version}
 
+    @function_tool
+    def state_conflicts() -> list[dict[str, object]]:
+        """Detect disagreements between independent data sources in the shared state."""
+        return detect_state_conflicts(state)
+
     return Agent(
         name="Orchestrator Agent",
         model="gpt-5.6-sol",
@@ -47,10 +53,11 @@ def build_orchestrator_agent(state: StateOfWorld) -> Agent:
             "quality, safety, labor, inventory, shipping, and customer consequences, then "
             "produce a concise recommendation with alternatives, evidence, expected impact, "
             "risks, affected metrics, assumptions, confidence, authority, and human approval. "
-            "Never expose hidden chain-of-thought. Safety violations and unauthorized actions "
-            "must be escalated, never rationalized away."
+            "Use state_conflicts to check for disagreements between independent data sources "
+            "before trusting a single value. Never expose hidden chain-of-thought. Safety "
+            "violations and unauthorized actions must be escalated, never rationalized away."
         ),
-        tools=[factory_snapshot, system_impact],
+        tools=[factory_snapshot, system_impact, state_conflicts],
         handoffs=[],
         # Specialists are intentionally exposed as tools, not handoffs.
         tool_use_behavior="run_llm_again",
@@ -58,6 +65,7 @@ def build_orchestrator_agent(state: StateOfWorld) -> Agent:
         tools=[
             factory_snapshot,
             system_impact,
+            state_conflicts,
             equipment_agent.as_tool("consult_equipment_agent", "Request equipment analysis."),
             production_agent.as_tool("consult_production_agent", "Request production analysis."),
             inventory_agent.as_tool("consult_inventory_agent", "Request inventory and quality analysis."),

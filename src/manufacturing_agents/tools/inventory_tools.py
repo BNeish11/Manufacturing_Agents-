@@ -9,7 +9,7 @@ from typing import Any
 from uuid import uuid4
 
 from manufacturing_agents.state.factory_state import StateOfWorld
-from manufacturing_agents.state.models import DataQuality, HumanInspectionObservation
+from manufacturing_agents.state.models import DataQuality, DefectObservation, HumanInspectionObservation
 
 
 def get_inventory_status(state: StateOfWorld) -> dict[str, object]:
@@ -232,6 +232,36 @@ def record_human_inspection(
                 severity=severity,
                 quantity=quantity,
                 timestamp=datetime.now(timezone.utc).isoformat(),
+            )
+        )
+    )
+
+
+def record_defect(
+    state: StateOfWorld,
+    product_id: str,
+    defect_code: str,
+    description: str,
+    severity: str,
+    quantity: int,
+    *,
+    line_id: str | None = None,
+) -> int:
+    """Record an observed defect. This is an observation only, not an accept/reject decision."""
+    if quantity <= 0:
+        raise ValueError("Defect quantity must be positive.")
+    return state.update(
+        lambda factory: factory.defects.append(
+            DefectObservation(
+                defect_id=f"defect-{uuid4().hex[:8]}",
+                product_id=product_id,
+                defect_code=defect_code,
+                description=description,
+                severity=severity,
+                quantity=quantity,
+                detected_at=datetime.now(timezone.utc).isoformat(),
+                line_id=line_id,
+                source="HUMAN_PROVIDED",
             )
         )
     )

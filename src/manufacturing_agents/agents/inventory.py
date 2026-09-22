@@ -14,6 +14,7 @@ from manufacturing_agents.tools.inventory_tools import (
     get_finished_goods,
     get_inventory_status,
     get_material_inventory,
+    record_defect,
 )
 
 
@@ -53,6 +54,11 @@ def build_inventory_agent(state: StateOfWorld) -> Agent:
         """Analyze recorded weight observations and repeated deviations."""
         return calculate_weight_variance(state, product_id)
 
+    @function_tool
+    def defect_observation(product_id: str, defect_code: str, description: str, severity: str, quantity: int) -> int:
+        """Record an observed defect. This logs an observation only; it is not an accept/reject decision."""
+        return record_defect(state, product_id, defect_code, description, severity, quantity)
+
     return Agent(
         name="Inventory Agent",
         model="gpt-5.6-terra",
@@ -65,7 +71,8 @@ def build_inventory_agent(state: StateOfWorld) -> Agent:
             "unknown or conflicting data. You may recommend or escalate, but you may not "
             "schedule production, purchase supplies, change customer commitments, override "
             "quality or safety rules, or replace the Orchestrator. Do not invent human "
-            "inspection results or measurements."
+            "inspection results or measurements. Recording a defect observation is not the "
+            "same as an accept/reject decision."
         ),
-        tools=[inventory_status, material_inventory, finished_goods, material_supported_production, supply_thresholds, defect_rate, weight_variance],
+        tools=[inventory_status, material_inventory, finished_goods, material_supported_production, supply_thresholds, defect_rate, weight_variance, defect_observation],
     )
